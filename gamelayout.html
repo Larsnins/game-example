@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Matching Game</title>
+    <style>
+        body {
+            background-image: url('picture/image.png');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .box {
+            width: 90vw;
+            max-width: 500px;
+            height: 80vh;
+            max-height: 550px;
+            background-color: rgba(100, 65, 44, 0.767);
+            border-radius: 20px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 5px;
+            padding: 10px;
+            overflow: visible;
+        }
+
+        .inner-box {
+            width: 100%;
+            height: 100%;
+            background-color: rgba(66, 39, 21, 0.979);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            position: absolute;
+        }
+
+        .image-container.winning {
+            animation: bombPop 0.5s ease forwards;
+        }
+
+        @keyframes bombPop {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.5);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+
+        .refresh-button {
+            margin-top: 10px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.3s ease;
+            outline: none;
+        }
+
+        .refresh-button:hover {
+            background-color: #45a049;
+        }
+
+        .balance {
+            margin-top: 10px;
+            color: white;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="box">
+            <!-- Generate inner boxes dynamically using JavaScript -->
+        </div>
+
+        <button class="refresh-button" onclick="refreshImages()">Refresh Images</button>
+        <div class="balance">Balance: <span id="balance">100</span></div>
+    </div>
+
+    <audio id="click-sound" src="Click.mp3"></audio>
+    <audio id="match-sound" src="backgroundmusic.mp3" loop></audio>
+    <audio id="win-sound" src="win.mp3"></audio>
+
+    <script>
+        var images = [
+            "https://cdni.iconscout.com/illustration/premium/thumb/china-building-7426780-6075322.png",
+            "https://i.pinimg.com/originals/60/be/47/60be4732aff9eef11de00f8b7ba8f2af.png",
+            "https://cdn1.iconfinder.com/data/icons/chianese-new-year/512/Chinese_Coin.png",
+            "https://www.shareicon.net/data/2016/06/12/589928_recipe_512x512.png",
+            "https://freepngdesign.com/content/uploads/images/lucky-cat-9977.png",
+            "https://png.pngtree.com/png-vector/20240115/ourmid/pngtree-chinese-dragon-emblem-transparent-background-png-image_11426422.png"
+        ];
+
+        var boxContainer = document.querySelector('.box');
+        var clickSound = document.getElementById('click-sound');
+        var matchSound = document.getElementById('match-sound');
+        var winSound = document.getElementById('win-sound');
+        var balanceDisplay = document.getElementById('balance');
+        var balance = 100; // Set initial balance to 100
+
+        // Set background music volume to 60%
+        matchSound.volume = 0.4;
+
+        function generateInnerBoxes() {
+            for (var i = 0; i < 25; i++) {
+                var innerBox = document.createElement('div');
+                innerBox.classList.add('inner-box');
+
+                var imageContainer = document.createElement('div');
+                imageContainer.classList.add('image-container');
+                imageContainer.dataset.index = i;
+
+                innerBox.appendChild(imageContainer);
+                innerBox.addEventListener('click', function() {
+                    playSound(clickSound);
+                    checkAndReplace(this);
+                });
+                boxContainer.appendChild(innerBox);
+            }
+            refreshImages();
+        }
+
+        function refreshImages() {
+            if (balance >= 2) {
+                balance -= 2;
+                updateBalanceDisplay();
+                var imageContainers = document.querySelectorAll('.image-container');
+                imageContainers.forEach(function(container) {
+                    var randomIndex = Math.floor(Math.random() * images.length);
+                    container.style.backgroundImage = 'url(' + images[randomIndex] + ')';
+                });
+            } else {
+                alert("You don't have enough balance to refresh!");
+            }
+        }
+
+        function playSound(sound) {
+            if (!sound.paused) {
+                sound.pause();
+                sound.currentTime = 0;
+            }
+            sound.play();
+        }
+
+        function updateBalanceDisplay() {
+            balanceDisplay.textContent = balance;
+        }
+
+        function checkAndReplace(clickedBox) {
+            var imageContainers = document.querySelectorAll('.image-container');
+            var clickedImageContainer = clickedBox.querySelector('.image-container');
+            var clickedIndex = parseInt(clickedImageContainer.dataset.index);
+            var clickedRow = Math.floor(clickedIndex / 5);
+            var clickedColumn = clickedIndex % 5;
+            var clickedImage = clickedImageContainer.style.backgroundImage;
+
+            var matchedContainers = [clickedImageContainer];
+            var leftIndex = clickedIndex - 1;
+            while (leftIndex >= clickedRow * 5 && imageContainers[leftIndex].style.backgroundImage === clickedImage) {
+                matchedContainers.push(imageContainers[leftIndex]);
+                leftIndex--;
+            }
+            var rightIndex = clickedIndex + 1;
+            while (rightIndex < (clickedRow + 1) * 5 && imageContainers[rightIndex].style.backgroundImage === clickedImage) {
+                matchedContainers.push(imageContainers[rightIndex]);
+                rightIndex++;
+            }
+
+            var topIndex = clickedIndex - 5;
+            while (topIndex >= 0 && imageContainers[topIndex].style.backgroundImage === clickedImage) {
+                matchedContainers.push(imageContainers[topIndex]);
+                topIndex -= 5;
+            }
+            var bottomIndex = clickedIndex + 5;
+            while (bottomIndex < imageContainers.length && imageContainers[bottomIndex].style.backgroundImage === clickedImage) {
+                matchedContainers.push(imageContainers[bottomIndex]);
+                bottomIndex += 5;
+            }
+
+            if (matchedContainers.length >= 3) {
+                playSound(winSound);
+                if (matchSound.paused) {
+                    matchSound.play();
+                }
+
+                matchedContainers.forEach(function(container) {
+                    container.classList.add('winning');
+                });
+
+                setTimeout(function() {
+                    moveMatchedToBottom(matchedContainers);
+                }, 500); // Timing should match the animation duration
+            }
+        }
+
+        function moveMatchedToBottom(matchedContainers) {
+            var imageContainers = document.querySelectorAll('.image-container');
+            var positions = matchedContainers.map(container => parseInt(container.dataset.index));
+            positions.sort((a, b) => b - a); // Sort positions in descending order
+
+            positions.forEach(pos => {
+                for (var i = pos; i >= 5; i -= 5) {
+                    imageContainers[i].style.backgroundImage = imageContainers[i - 5].style.backgroundImage;
+                }
+                var randomIndex = Math.floor(Math.random() * images.length);
+                imageContainers[i % 5].style.backgroundImage = 'url(' + images[randomIndex] + ')';
+            });
+
+            matchedContainers.forEach(function(container) {
+                container.classList.remove('winning');
+            });
+        }
+
+        generateInnerBoxes();
+    </script>
+</body>
+</html>
